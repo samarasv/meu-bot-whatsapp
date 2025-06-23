@@ -2,7 +2,7 @@
 node_modules/
 
 # Pasta que guarda a sessão do WhatsApp-web.js
-.wwebjs_auth/
+
 
 # Logs
 logs
