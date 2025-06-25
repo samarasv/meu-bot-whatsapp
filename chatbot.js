@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('fs');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
@@ -7,36 +8,36 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const client = new Client({
-    authStrategy: new LocalAuth(), // Salva sessão localmente
+    authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Necessário para hospedagem online
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
     }
 });
 
 const estados = new Map();
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-// Endpoint simples para manter servidor vivo
+// Endpoint para manter vivo
 app.get('/', (req, res) => res.send('🤖 Bot WhatsApp está rodando!'));
 app.listen(PORT, () => {
-    console.log(`🌐 Servidor web ativo em http://localhost:${PORT}`);
+    console.log(`🌐 Servidor web em http://localhost:${PORT}`);
 });
 
-// Exibe QR Code
+// QR Code
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
-    console.log('📲 Escaneie o QR Code acima com seu WhatsApp.');
+    console.log('📲 Escaneie o QR Code com o WhatsApp');
 });
 
 // Conectado
 client.on('ready', () => {
-    console.log('✅ WhatsApp conectado com sucesso!');
+    console.log('✅ Bot conectado ao WhatsApp!');
 });
 
-// Inicializa o cliente
+// Inicializa o bot
 client.initialize();
 
-// Fluxo de mensagens
+// Mensagens
 client.on('message', async msg => {
     const numero = msg.from;
     const texto = msg.body.trim().toLowerCase();
@@ -67,36 +68,34 @@ client.on('message', async msg => {
 
     const estado = estados.get(numero);
 
-    // Menu principal
     if (estado === 'menu_principal') {
         switch (texto) {
             case '1':
-                await client.sendMessage(numero, '🇮🇹 Você escolheu *Cidadania Italiana*. Agora selecione:\n\n1 - Busca de documentos\n2 - Emissão de certidões\n3 - Cidadania Judicial\n4 - Outros serviços');
+                await client.sendMessage(numero, '🇮🇹 Você escolheu *Cidadania Italiana*. Agora selecione:\n1 - Busca de documentos\n2 - Emissão de certidões\n3 - Cidadania Judicial\n4 - Outros serviços');
                 estados.set(numero, 'cidadania_italiana');
                 break;
             case '2':
-                await client.sendMessage(numero, '🇵🇹 Você escolheu *Cidadania Portuguesa*. Um atendente entrará em contato com você em breve.');
+                await client.sendMessage(numero, '🇵🇹 *Cidadania Portuguesa*. Um atendente falará com você em breve.');
                 estados.delete(numero);
                 break;
             case '3':
-                await client.sendMessage(numero, '🚗 Você escolheu *Conversão de CNH*. Um atendente irá te chamar em breve.');
+                await client.sendMessage(numero, '🚗 *Conversão de CNH*. Um atendente te chamará em breve.');
                 estados.delete(numero);
                 break;
             case '4':
-                await client.sendMessage(numero, '📝 Você escolheu *Tradução juramentada*. Em que podemos ajudar?');
+                await client.sendMessage(numero, '📝 *Tradução juramentada*. Em que podemos ajudar?');
                 estados.set(numero, 'traducao');
                 break;
             case '5':
-                await client.sendMessage(numero, '🛠️ Por favor, descreva o serviço desejado.');
+                await client.sendMessage(numero, '🛠️ Descreva o serviço desejado.');
                 estados.set(numero, 'outros');
                 break;
             default:
-                await client.sendMessage(numero, '❌ Opção inválida. Por favor, digite um número de 1 a 5.');
+                await client.sendMessage(numero, '❌ Opção inválida. Digite um número de 1 a 5.');
         }
         return;
     }
 
-    // Submenu Cidadania Italiana
     if (estado === 'cidadania_italiana') {
         const opcoes = {
             '1': 'Busca de documentos',
@@ -105,24 +104,22 @@ client.on('message', async msg => {
             '4': 'Outros serviços'
         };
 
-        const escolha = opcoes[texto] || null;
+        const escolha = opcoes[texto];
         if (escolha) {
-            await client.sendMessage(numero, `✅ Entendido! Em breve um de nossos atendentes entrará em contato com você referente a *${escolha}*.`);
+            await client.sendMessage(numero, `✅ Entendido! Um atendente entrará em contato sobre *${escolha}*.`);
             estados.delete(numero);
         } else {
-            await client.sendMessage(numero, '❌ Opção inválida. Escolha de 1 a 4.');
+            await client.sendMessage(numero, '❌ Escolha inválida. Responda com um número de 1 a 4.');
         }
         return;
     }
 
-    // Outros serviços ou tradução
-    if (estado === 'outros' || estado === 'traducao') {
+    if (estado === 'traducao' || estado === 'outros') {
         await client.sendMessage(numero, '📩 Obrigado! Um atendente irá te chamar em breve.');
         estados.delete(numero);
         return;
     }
 
-    // Se estiver fora de fluxo
     if (!estados.has(numero)) {
         await client.sendMessage(numero, '⚠️ Digite "menu" para iniciar o atendimento.');
     }
