@@ -9,6 +9,7 @@
     "whatsapp-web.js": "^1.30.0"
   },
   "scripts": {
+    "start": "node chatbot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
